@@ -1,104 +1,98 @@
 import json
 import urllib.request
+import urllib.parse
 import urllib.error
 
-PRODUCT_URL = (
-    "https://www.apple.com/shop/buy-iphone/"
-    "iphone-duo/7.6-inch-display-256gb-night-sky-att"
-)
+# iPhone Duo Hunter
+PRODUCT = "iPhone Duo 256GB Night Sky AT&T"
+PART_NUMBER = "MK1F4LL/A"
 
-ZIP_CODE = "19103"
-RADIUS_MILES = 50
+# Search locations
+LOCATIONS = {
+    "Philadelphia": "19103",
+    "New Jersey": "08540",
+    "New York City": "10001",
+    "Long Island": "11743",
+    "Delaware": "19801",
+    "Baltimore": "21201",
+    "Maryland": "20814",
+}
 
 print("🤖 iPhone Duo Hunter")
-print("Checking Apple product page...")
-print(f"ZIP code: {ZIP_CODE}")
-print(f"Search radius: {RADIUS_MILES} miles")
+print(f"Looking for: {PRODUCT}")
+print("=" * 40)
 
-request = urllib.request.Request(
-    PRODUCT_URL,
-    headers={
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "text/html",
-    },
-)
+available_stores = []
+successful_checks = 0
 
-try:
-    with urllib.request.urlopen(request, timeout=20) as response:
-        print(f"HTTP status: {response.status}")
-        print(f"Final URL: {response.url}")
-        print("Product page request completed.")
+for city, zipcode in LOCATIONS.items():
 
-except urllib.error.HTTPError as error:
-    print(f"Apple returned HTTP {error.code}")
+    print(f"\n🔍 Checking {city} ({zipcode})")
 
-except urllib.error.URLError as error:
-    print(f"Connection failed: {error.reason}")
-print("\n🔍 Checking for inventory information...")
+    params = urllib.parse.urlencode({
+        "pl": "true",
+        "location": zipcode,
+        "parts.0": PART_NUMBER,
+    })
 
-try:
-    with urllib.request.urlopen(request, timeout=20) as response:
-        html = response.read().decode("utf-8", errors="replace")
+    url = (
+        "https://www.apple.com/shop/retail/"
+        "pickup-message?" + params
+    )
 
-    print(f"Page size: {len(html)} characters")
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json",
+        },
+    )
 
-    keywords = [
-        "pickup",
-        "availability",
-        "storePickup",
-        "pickupMessage",
-        "partNumber",
-    ]
+    try:
+        with urllib.request.urlopen(
+            request, timeout=20
+        ) as response:
+            data = json.load(response)
 
-    for keyword in keywords:
-        count = html.lower().count(keyword.lower())
-        print(f"{keyword}: {count} occurrences")
+        stores = data.get("body", {}).get("stores")
 
-    if "storePickup" in html:
-        print("Potential pickup data reference found.")
-    else:
-        print("No storePickup reference found.")
+        if not isinstance(stores, list):
+            print("⚠️ Unexpected inventory response")
+            continue
 
-    print("Inventory diagnostic completed.")
+        successful_checks += 1
 
-except Exception as error:
-    print(f"Inventory diagnostic failed: {type(error).__name__}")
-import re
+        for store in stores:
+            name = store.get("storeName", "Unknown")
 
-print("\n🔍 Examining pickup references...")
+            availability = (
+                store.get("partsAvailability", {})
+                .get(PART_NUMBER, {})
+            )
 
-for match in list(re.finditer("storepickup", html, re.IGNORECASE))[:5]:
-    start = max(0, match.start() - 120)
-    end = min(len(html), match.end() + 120)
+            status = availability.get(
+                "pickupDisplay", "unknown"
+            )
 
-    snippet = html[start:end]
-    snippet = re.sub(r"\s+", " ", snippet)
+            print(f"{name}: {status}")
 
-    print(f"Reference: {snippet[:250]}")
-print("\n🔍 Searching for product identifiers...")
+            if status == "available":
+                available_stores.append(name)
 
-patterns = [
-    r'"partNumber"\s*:\s*"([^"]+)"',
-    r'"productId"\s*:\s*"([^"]+)"',
-    r'"sku"\s*:\s*"([^"]+)"',
-]
+    except Exception as error:
+        print(f"⚠️ Check failed: {error}")
 
-for pattern in patterns:
-    matches = re.findall(pattern, html, re.IGNORECASE)
-    unique = list(dict.fromkeys(matches))
-    print(f"Pattern: {pattern}")
-    print(f"Matches found: {len(unique)}")
-    print(f"Sample identifiers: {unique[:10]}")
-print("\n🔍 Checking selected SKU context...")
+print("\n" + "=" * 40)
 
-sku = "MK1F4LL/A+att"
+if available_stores:
+    print("🎉 AVAILABLE AT:")
+    for store in sorted(set(available_stores)):
+        print(store)
 
-position = html.find(sku)
+elif successful_checks:
+    print("No availability found in checked stores.")
 
-if position != -1:
-    start = max(0, position - 500)
-    end = min(len(html), position + 500)
-
-    print(html[start:end])
 else:
-    print("SKU not found in product page.")
+    print("⚠️ Inventory could not be verified.")
+
+print("\nInventory check complete.")
