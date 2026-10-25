@@ -2,10 +2,11 @@ name: Test Telegram Connection
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
   schedule:
-    - cron: '*/15 * * * *'
-permissions:
-  contents: read
+    - cron: '*/5 * * * *'
 
 jobs:
   test:
