@@ -34,3 +34,32 @@ except urllib.error.HTTPError as error:
 
 except urllib.error.URLError as error:
     print(f"Connection failed: {error.reason}")
+print("\n🔍 Checking for inventory information...")
+
+try:
+    with urllib.request.urlopen(request, timeout=20) as response:
+        html = response.read().decode("utf-8", errors="replace")
+
+    print(f"Page size: {len(html)} characters")
+
+    keywords = [
+        "pickup",
+        "availability",
+        "storePickup",
+        "pickupMessage",
+        "partNumber",
+    ]
+
+    for keyword in keywords:
+        count = html.lower().count(keyword.lower())
+        print(f"{keyword}: {count} occurrences")
+
+    if "storePickup" in html:
+        print("Potential pickup data reference found.")
+    else:
+        print("No storePickup reference found.")
+
+    print("Inventory diagnostic completed.")
+
+except Exception as error:
+    print(f"Inventory diagnostic failed: {type(error).__name__}")
