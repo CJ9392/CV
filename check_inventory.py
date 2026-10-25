@@ -75,3 +75,17 @@ for match in list(re.finditer("storepickup", html, re.IGNORECASE))[:5]:
     snippet = re.sub(r"\s+", " ", snippet)
 
     print(f"Reference: {snippet[:250]}")
+print("\n🔍 Searching for product identifiers...")
+
+patterns = [
+    r'"partNumber"\s*:\s*"([^"]+)"',
+    r'"productId"\s*:\s*"([^"]+)"',
+    r'"sku"\s*:\s*"([^"]+)"',
+]
+
+for pattern in patterns:
+    matches = re.findall(pattern, html, re.IGNORECASE)
+    unique = list(dict.fromkeys(matches))
+    print(f"Pattern: {pattern}")
+    print(f"Matches found: {len(unique)}")
+    print(f"Sample identifiers: {unique[:10]}")
