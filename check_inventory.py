@@ -63,3 +63,15 @@ try:
 
 except Exception as error:
     print(f"Inventory diagnostic failed: {type(error).__name__}")
+import re
+
+print("\n🔍 Examining pickup references...")
+
+for match in list(re.finditer("storepickup", html, re.IGNORECASE))[:5]:
+    start = max(0, match.start() - 120)
+    end = min(len(html), match.end() + 120)
+
+    snippet = html[start:end]
+    snippet = re.sub(r"\s+", " ", snippet)
+
+    print(f"Reference: {snippet[:250]}")
