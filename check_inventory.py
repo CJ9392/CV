@@ -89,3 +89,16 @@ for pattern in patterns:
     print(f"Pattern: {pattern}")
     print(f"Matches found: {len(unique)}")
     print(f"Sample identifiers: {unique[:10]}")
+print("\n🔍 Checking selected SKU context...")
+
+sku = "MK1F4LL/A+att"
+
+position = html.find(sku)
+
+if position != -1:
+    start = max(0, position - 500)
+    end = min(len(html), position + 500)
+
+    print(html[start:end])
+else:
+    print("SKU not found in product page.")
